@@ -102,8 +102,9 @@ impl<'a> SmallD<'a> {
                 ))?
                 .to_owned();
 
-            let ws_url = Url::parse(&ws_url_str)
-                .map_err(|_e| Error::IllegalArgumentError(format!("Bad websocket url: {}", ws_url_str)))?;
+            let ws_url = Url::parse(&ws_url_str).map_err(|_e| {
+                Error::IllegalArgumentError(format!("Bad websocket url: {}", ws_url_str))
+            })?;
 
             self.gateway.connect(ws_url)?;
             loop {
