@@ -8,7 +8,7 @@ use crate::SmallD;
 pub struct Identify {}
 
 impl Identify {
-    pub fn attach(smalld: &SmallD) {
+    pub fn attach(smalld: &mut SmallD) {
         let identify: Identify = Identify {};
 
         smalld.on_gateway_payload(move |p| identify.on_gateway_payload(p));
