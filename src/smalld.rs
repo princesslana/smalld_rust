@@ -3,20 +3,25 @@ use retry::delay::Fixed;
 use retry::retry;
 use serde_json::Value;
 use std::env;
+use std::sync::Mutex;
 use thiserror::Error;
-use tungstenite::{connect, Message};
+use tungstenite::Message;
 use ureq::{Agent, AgentBuilder};
 use url::Url;
 
+use crate::gateway::Gateway;
+use crate::identify::Identify;
+
 const V8_URL: &str = "https://discord.com/api/v8";
 
-pub type Listener = dyn Fn(&Value) -> () + 'static;
+pub type Listener<'a> = dyn Fn(&Value) -> () + Send + 'a;
 
-pub struct SmallD {
-    token: String,
+pub struct SmallD<'a> {
+    pub token: String,
     base_url: Url,
     http: Agent,
-    listeners: Vec<Box<Listener>>,
+    gateway: Gateway,
+    listeners: Mutex<Vec<Box<Listener<'a>>>>,
 }
 
 #[derive(Error, Debug)]
@@ -30,8 +35,8 @@ pub enum Error {
     IOError(#[from] std::io::Error),
 }
 
-impl SmallD {
-    pub fn new() -> Result<SmallD, Error> {
+impl<'a> SmallD<'a> {
+    pub fn new() -> Result<SmallD<'a>, Error> {
         let base_url: Url = Url::parse(V8_URL)
             .map_err(|_e| Error::ConfigurationError(format!("Bad base url: {}", V8_URL)))?;
 
@@ -45,19 +50,29 @@ impl SmallD {
         let token: String = env::var("SMALLD_TOKEN")
             .map_err(|_e| Error::ConfigurationError("Could not find Discord token".to_string()))?;
 
-        Ok(SmallD {
+        let smalld: SmallD = SmallD {
             token: token,
             base_url: base_url,
             http: AgentBuilder::new().build(),
-            listeners: vec![],
-        })
+            gateway: Gateway::new(),
+            listeners: Mutex::new(vec![]),
+        };
+
+        Identify::attach(&smalld);
+
+        Ok(smalld)
     }
 
-    pub fn on_gateway_payload<F>(&mut self, f: F)
+    pub fn on_gateway_payload<F>(&self, f: F)
     where
-        F: Fn(&Value) -> () + 'static,
+        F: Fn(&Value) -> () + Send + 'a,
     {
-        self.listeners.push(Box::new(f));
+        let mut lock = self.listeners.lock().unwrap();
+        lock.push(Box::new(f));
+    }
+
+    pub fn send_gateway_payload(&self, json: Value) -> Result<(), Error> {
+        self.gateway.send(json.to_string())
     }
 
     pub fn get<S: AsRef<str>>(&self, path: S) -> Result<Value, Error> {
@@ -78,7 +93,7 @@ impl SmallD {
 
     pub fn run(&self) {
         retry(Fixed::from_millis(5000), || {
-            let ws_url = self
+            let ws_url_str = self
                 .get("/gateway/bot")?
                 .get("url")
                 .and_then(Value::as_str)
@@ -87,13 +102,17 @@ impl SmallD {
                 ))?
                 .to_owned();
 
-            let (mut socket, _) = connect(ws_url)?;
+            let ws_url = Url::parse(&ws_url_str)
+                .map_err(|_e| Error::IllegalArgumentError(format!("Bad websocket url: {}", ws_url_str)))?;
+
+            self.gateway.connect(ws_url)?;
             loop {
-                match socket.read_message()? {
+                match self.gateway.read()? {
                     Message::Text(s) => {
                         debug!("Payload received: {}", s);
                         if let Ok(json) = serde_json::from_str(&s) {
-                            for l in self.listeners.iter() {
+                            let lock = self.listeners.lock().unwrap();
+                            for l in lock.iter() {
                                 l(&json)
                             }
                         }
