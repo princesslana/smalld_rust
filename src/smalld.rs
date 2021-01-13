@@ -3,7 +3,6 @@ use retry::delay::Fixed;
 use retry::retry;
 use serde_json::Value;
 use std::env;
-use std::sync::Mutex;
 use thiserror::Error;
 use tungstenite::Message;
 use ureq::{Agent, AgentBuilder};
@@ -21,7 +20,7 @@ pub struct SmallD<'a> {
     base_url: Url,
     http: Agent,
     gateway: Gateway,
-    listeners: Mutex<Vec<Box<Listener<'a>>>>,
+    listeners: Vec<Box<Listener<'a>>>,
 }
 
 #[derive(Error, Debug)]
@@ -50,25 +49,24 @@ impl<'a> SmallD<'a> {
         let token: String = env::var("SMALLD_TOKEN")
             .map_err(|_e| Error::ConfigurationError("Could not find Discord token".to_string()))?;
 
-        let smalld: SmallD = SmallD {
+        let mut smalld: SmallD = SmallD {
             token: token,
             base_url: base_url,
             http: AgentBuilder::new().build(),
             gateway: Gateway::new(),
-            listeners: Mutex::new(vec![]),
+            listeners: vec![],
         };
 
-        Identify::attach(&smalld);
+        Identify::attach(&mut smalld);
 
         Ok(smalld)
     }
 
-    pub fn on_gateway_payload<F>(&self, f: F)
+    pub fn on_gateway_payload<F>(&mut self, f: F)
     where
         F: Fn(&Value) -> () + Send + 'a,
     {
-        let mut lock = self.listeners.lock().unwrap();
-        lock.push(Box::new(f));
+        self.listeners.push(Box::new(f));
     }
 
     pub fn send_gateway_payload(&self, json: Value) -> Result<(), Error> {
@@ -112,8 +110,7 @@ impl<'a> SmallD<'a> {
                     Message::Text(s) => {
                         debug!("Payload received: {}", s);
                         if let Ok(json) = serde_json::from_str(&s) {
-                            let lock = self.listeners.lock().unwrap();
-                            for l in lock.iter() {
+                            for l in self.listeners.iter() {
                                 l(&json)
                             }
                         }
