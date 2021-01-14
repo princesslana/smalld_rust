@@ -2,20 +2,21 @@ use log::warn;
 use serde_json::json;
 use std::env;
 
-use crate::{Event, Payload, SmallD};
+use crate::{Payload, SmallD};
 
 pub struct Identify {}
 
 impl Identify {
     pub fn attach(smalld: &mut SmallD) {
         let identify: Identify = Identify {};
+        let smalld_clone = smalld.clone();
 
-        smalld.on_gateway_payload(move |p| identify.on_gateway_payload(p));
+        smalld.on_gateway_payload(move |p| identify.on_gateway_payload(&smalld_clone, p));
     }
 
-    fn on_gateway_payload(&self, evt: &Event) {
-        match evt.payload {
-            Payload { op: 10, .. } => self.identify(evt.smalld),
+    fn on_gateway_payload(&self, smalld: &SmallD, p: &Payload) {
+        match p {
+            Payload { op: 10, .. } => self.identify(&smalld),
             _ => (),
         }
     }

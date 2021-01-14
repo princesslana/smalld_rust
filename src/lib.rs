@@ -1,5 +1,5 @@
 pub use crate::payload::Payload;
-pub use crate::smalld::{Event, SmallD};
+pub use crate::smalld::SmallD;
 
 mod gateway;
 mod heartbeat;
