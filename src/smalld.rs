@@ -13,18 +13,18 @@ use crate::payload::Payload;
 const V8_URL: &str = "https://discord.com/api/v8";
 
 pub struct Event<'a> {
-    pub smalld: &'a SmallD<'a>,
+    pub smalld: &'a SmallD,
     pub payload: Payload,
 }
 
-pub type Listener<'a> = dyn Fn(&Event<'_>) -> () + Send + 'a;
+pub type Listener = dyn Fn(&Event<'_>) -> () + Send + 'static;
 
-pub struct SmallD<'a> {
+pub struct SmallD {
     pub token: String,
     base_url: Url,
     http: Agent,
     gateway: Gateway,
-    listeners: Vec<Box<Listener<'a>>>,
+    listeners: Vec<Box<Listener>>,
 }
 
 #[derive(Error, Debug)]
@@ -38,8 +38,8 @@ pub enum Error {
     IOError(#[from] std::io::Error),
 }
 
-impl<'a> SmallD<'a> {
-    pub fn new() -> Result<SmallD<'a>, Error> {
+impl SmallD {
+    pub fn new() -> Result<SmallD, Error> {
         let base_url: Url = Url::parse(V8_URL)
             .map_err(|_e| Error::ConfigurationError(format!("Bad base url: {}", V8_URL)))?;
 
@@ -68,7 +68,7 @@ impl<'a> SmallD<'a> {
 
     pub fn on_gateway_payload<F>(&mut self, f: F)
     where
-        F: Fn(&Event) -> () + Send + 'a,
+        F: Fn(&Event) -> () + Send + 'static,
     {
         self.listeners.push(Box::new(f));
     }
