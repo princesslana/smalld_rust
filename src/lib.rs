@@ -1,6 +1,6 @@
+pub use crate::gateway::Payload;
 pub use crate::smalld::SmallD;
-
-pub mod smalld;
 
 mod gateway;
 mod identify;
+mod smalld;

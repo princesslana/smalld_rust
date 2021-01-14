@@ -4,16 +4,15 @@ use retry::retry;
 use serde_json::Value;
 use std::env;
 use thiserror::Error;
-use tungstenite::Message;
 use ureq::{Agent, AgentBuilder};
 use url::Url;
 
-use crate::gateway::Gateway;
+use crate::gateway::{Gateway, Message, Payload};
 use crate::identify::Identify;
 
 const V8_URL: &str = "https://discord.com/api/v8";
 
-pub type Listener<'a> = dyn Fn(&Value) -> () + Send + 'a;
+pub type Listener<'a> = dyn Fn(&Payload) -> () + Send + 'a;
 
 pub struct SmallD<'a> {
     pub token: String,
@@ -64,13 +63,13 @@ impl<'a> SmallD<'a> {
 
     pub fn on_gateway_payload<F>(&mut self, f: F)
     where
-        F: Fn(&Value) -> () + Send + 'a,
+        F: Fn(&Payload) -> () + Send + 'a,
     {
         self.listeners.push(Box::new(f));
     }
 
-    pub fn send_gateway_payload(&self, json: Value) -> Result<(), Error> {
-        self.gateway.send(json.to_string())
+    pub fn send_gateway_payload(&self, payload: Payload) -> Result<(), Error> {
+        self.gateway.send(payload)
     }
 
     pub fn get<S: AsRef<str>>(&self, path: S) -> Result<Value, Error> {
@@ -107,16 +106,12 @@ impl<'a> SmallD<'a> {
             self.gateway.connect(ws_url)?;
             loop {
                 match self.gateway.read()? {
-                    Message::Text(s) => {
-                        debug!("Payload received: {}", s);
-                        if let Ok(json) = serde_json::from_str(&s) {
-                            for l in self.listeners.iter() {
-                                l(&json)
-                            }
+                    Message::Payload(p) => {
+                        for l in self.listeners.iter() {
+                            l(&p)
                         }
                     }
-                    Message::Close(_) => break,
-                    Message::Ping(_) | Message::Pong(_) | Message::Binary(_) => {}
+                    Message::Close { .. } => break,
                 }
             }
             Ok::<(), Error>(())
