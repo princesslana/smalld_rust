@@ -4,8 +4,14 @@ use serde_json::Value;
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Payload {
     pub op: u8,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub d: Option<Value>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub t: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub s: Option<u64>,
 }
 
