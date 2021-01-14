@@ -1,16 +1,19 @@
+use crate::gateway::{Gateway, Message};
+use crate::heartbeat::Heartbeat;
+use crate::identify::Identify;
+use crate::listeners::Listeners;
+use crate::payload::Payload;
+use log::warn;
 use retry::delay::Fixed;
 use retry::retry;
 use serde_json::Value;
 use std::env;
 use std::sync::{Arc, Mutex};
+use std::thread::sleep;
+use std::time::Duration;
 use thiserror::Error;
 use ureq::{Agent, AgentBuilder};
 use url::Url;
-
-use crate::gateway::{Gateway, Message};
-use crate::identify::Identify;
-use crate::listeners::Listeners;
-use crate::payload::Payload;
 
 const V8_URL: &str = "https://discord.com/api/v8";
 
@@ -19,6 +22,7 @@ pub struct Event<'a> {
     pub payload: Payload,
 }
 
+#[derive(Clone)]
 pub struct SmallD {
     pub token: String,
     base_url: Url,
@@ -61,6 +65,7 @@ impl SmallD {
             listeners: Arc::new(Mutex::new(Listeners::new())),
         };
 
+        Heartbeat::attach(&mut smalld);
         Identify::attach(&mut smalld);
 
         Ok(smalld)
@@ -95,7 +100,7 @@ impl SmallD {
     }
 
     pub fn run(&self) {
-        retry(Fixed::from_millis(5000), || {
+        if let Err(err) = retry(Fixed::from_millis(5000), || {
             let ws_url_str = self
                 .get("/gateway/bot")?
                 .get("url")
@@ -121,9 +126,12 @@ impl SmallD {
                         guard.notify(&evt);
                     }
                     Message::Close { .. } => break,
+                    Message::None => sleep(Duration::from_millis(100)),
                 }
             }
             Ok::<(), Error>(())
-        });
+        }) {
+            warn!("Error running Smalld: {}", err);
+        }
     }
 }
