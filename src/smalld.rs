@@ -1,3 +1,4 @@
+use crate::error::Error;
 use crate::gateway::{Gateway, Message};
 use crate::heartbeat::Heartbeat;
 use crate::identify::Identify;
@@ -11,7 +12,6 @@ use std::env;
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
-use thiserror::Error;
 use ureq::{Agent, AgentBuilder};
 use url::Url;
 
@@ -29,17 +29,6 @@ pub struct SmallD {
     http: Agent,
     gateway: Arc<Gateway>,
     listeners: Arc<Mutex<Listeners>>,
-}
-
-#[derive(Error, Debug)]
-#[error("{0}")]
-pub enum Error {
-    ConfigurationError(String),
-    IllegalArgumentError(String),
-    IllegalStateError(String),
-    HttpError(#[from] ureq::Error),
-    WebSocketError(#[from] tungstenite::Error),
-    IOError(#[from] std::io::Error),
 }
 
 impl SmallD {
