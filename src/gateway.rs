@@ -1,25 +1,16 @@
 use log::debug;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::sync::Mutex;
 use tungstenite::client::AutoStream;
 use tungstenite::{connect, Message as WsMessage, WebSocket};
 use url::Url;
 
+use crate::payload::Payload;
 use crate::smalld::Error;
 
 type WS = WebSocket<AutoStream>;
 
 pub struct Gateway {
     web_socket: Mutex<Option<WS>>,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Payload {
-    pub op: u8,
-    pub d: Option<Value>,
-    pub t: Option<String>,
-    pub s: Option<u64>,
 }
 
 #[derive(Debug)]
@@ -62,8 +53,8 @@ impl Gateway {
         f(ws).map_err(|e| e.into())
     }
 
-    pub fn send(&self, payload: Payload) -> Result<(), Error> {
-        let txt: String = serde_json::to_string(&payload).map_err(|_e| {
+    pub fn send(&self, payload: &Payload) -> Result<(), Error> {
+        let txt: String = serde_json::to_string(payload).map_err(|_e| {
             Error::IllegalArgumentError(format!("Unable to convert payload to json {:?}", payload))
         })?;
 
