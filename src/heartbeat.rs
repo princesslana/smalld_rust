@@ -1,5 +1,5 @@
 use crate::{Event, Payload, SmallD};
-use log::{debug, warn};
+use log::warn;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use std::thread::{sleep, spawn};

@@ -18,7 +18,7 @@ pub struct Payload {
 impl Payload {
     pub fn op(op: u8) -> Payload {
         Payload {
-            op: op,
+            op,
             d: None,
             s: None,
             t: None,

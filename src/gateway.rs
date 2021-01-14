@@ -57,7 +57,7 @@ impl Gateway {
 
         let ws = lock
             .as_mut()
-            .ok_or(Error::IllegalStateError("No gateway connected".to_string()))?;
+            .ok_or_else(|| Error::IllegalStateError("No gateway connected".to_string()))?;
 
         f(ws).map_err(|e| e.into())
     }
