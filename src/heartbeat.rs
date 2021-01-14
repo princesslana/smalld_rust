@@ -1,4 +1,4 @@
-use crate::{Payload, SmallD};
+use crate::{Op, Payload, SmallD};
 use log::warn;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
@@ -56,7 +56,7 @@ impl Heartbeat {
     fn send(&self, smalld: &SmallD) {
         let d = self.sequence_number.map_or(json!(null), |n| json!(n));
 
-        if let Err(err) = smalld.send_gateway_payload(Payload::op(1).d(d)) {
+        if let Err(err) = smalld.send_gateway_payload(Payload::op(Op::Heartbeat).d(d)) {
             warn!("Error sending heartbeat: {}", err);
         }
     }
@@ -64,7 +64,9 @@ impl Heartbeat {
     fn on_gateway_payload(&mut self, p: &Payload) {
         match p {
             Payload {
-                op: 10, d: Some(d), ..
+                op: Op::Hello,
+                d: Some(d),
+                ..
             } => self.heartbeat_interval = d.get("heartbeat_interval").and_then(|v| v.as_u64()),
             Payload { s: Some(s), .. } => self.sequence_number = Some(*s),
             _ => (),
