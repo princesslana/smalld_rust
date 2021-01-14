@@ -17,18 +17,13 @@ use url::Url;
 
 const V8_URL: &str = "https://discord.com/api/v8";
 
-pub struct Event<'a> {
-    pub smalld: &'a SmallD,
-    pub payload: Payload,
-}
-
 #[derive(Clone)]
 pub struct SmallD {
     pub token: String,
     base_url: Url,
     http: Agent,
     gateway: Arc<Gateway>,
-    listeners: Arc<Mutex<Listeners>>,
+    listeners: Arc<Mutex<Listeners<Payload>>>,
 }
 
 #[derive(Error, Debug)]
@@ -73,7 +68,7 @@ impl SmallD {
 
     pub fn on_gateway_payload<F>(&mut self, f: F)
     where
-        F: Fn(&Event) + Send + Sync + 'static,
+        F: Fn(&Payload) + Send + Sync + 'static,
     {
         let mut guard = self.listeners.lock().unwrap();
         guard.add(f);
@@ -118,12 +113,8 @@ impl SmallD {
             loop {
                 match self.gateway.read()? {
                     Message::Payload(p) => {
-                        let evt = Event {
-                            smalld: &self,
-                            payload: p,
-                        };
                         let guard = self.listeners.lock().unwrap();
-                        guard.notify(&evt);
+                        guard.notify(p);
                     }
                     Message::Close { .. } => break,
                     Message::None => sleep(Duration::from_millis(100)),

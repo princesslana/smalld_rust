@@ -1,4 +1,4 @@
-use crate::{Event, Payload, SmallD};
+use crate::{Payload, SmallD};
 use log::warn;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
@@ -61,8 +61,8 @@ impl Heartbeat {
         }
     }
 
-    fn on_gateway_payload(&mut self, evt: &Event) {
-        match &evt.payload {
+    fn on_gateway_payload(&mut self, p: &Payload) {
+        match p {
             Payload {
                 op: 10, d: Some(d), ..
             } => self.heartbeat_interval = d.get("heartbeat_interval").and_then(|v| v.as_u64()),
