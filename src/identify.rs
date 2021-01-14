@@ -1,9 +1,8 @@
-use log::info;
-use serde_json::{json, Value};
+use log::warn;
+use serde_json::json;
 use std::env;
-use ureq::Agent;
 
-use crate::{Payload, SmallD};
+use crate::{Event, Payload, SmallD};
 
 pub struct Identify {}
 
@@ -14,22 +13,26 @@ impl Identify {
         smalld.on_gateway_payload(move |p| identify.on_gateway_payload(p));
     }
 
-    fn on_gateway_payload(&self, p: &Payload) {
-        info!("payload received in identify! {:?}", p);
+    fn on_gateway_payload(&self, evt: &Event) {
+        match evt.payload {
+            Payload { op: 10, .. } => self.identify(evt.smalld),
+            _ => (),
+        }
     }
-    /*
-    fn identify(&mut self) {
-        self.smalld.send_gateway_payload(json!({
-            "op": 2,
-            "d": {
-                "token": self.smalld.token,
-                "properties": {
-                    "$os": env::consts::OS,
-                    "$browser": "smalld_rust",
-                    "$device": "smalld_rust"
-                }
-            }
-        }));
+
+    fn identify(&self, smalld: &SmallD) {
+        if let Err(err) = smalld.send_gateway_payload(Payload {
+            op: 2,
+            d: Some(json!({ "token": smalld.token,
+            "properties": {
+                "$os": env::consts::OS,
+                "$browser": "smalld_rust",
+                "$device": "smalld_rust"
+            }})),
+            s: None,
+            t: None,
+        }) {
+            warn!("Error sending identify payload: {}", err);
+        }
     }
-    */
 }

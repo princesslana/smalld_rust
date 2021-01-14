@@ -1,7 +1,6 @@
 use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::convert::From;
 use std::sync::Mutex;
 use tungstenite::client::AutoStream;
 use tungstenite::{connect, Message as WsMessage, WebSocket};
@@ -17,10 +16,10 @@ pub struct Gateway {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Payload {
-    op: u8,
-    d: Option<Value>,
-    t: Option<String>,
-    s: Option<u64>,
+    pub op: u8,
+    pub d: Option<Value>,
+    pub t: Option<String>,
+    pub s: Option<u64>,
 }
 
 #[derive(Debug)]

@@ -1,5 +1,5 @@
 pub use crate::gateway::Payload;
-pub use crate::smalld::SmallD;
+pub use crate::smalld::{Event, SmallD};
 
 mod gateway;
 mod identify;

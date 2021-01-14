@@ -1,4 +1,3 @@
-use log::debug;
 use retry::delay::Fixed;
 use retry::retry;
 use serde_json::Value;
@@ -12,7 +11,12 @@ use crate::identify::Identify;
 
 const V8_URL: &str = "https://discord.com/api/v8";
 
-pub type Listener<'a> = dyn Fn(&Payload) -> () + Send + 'a;
+pub struct Event<'a> {
+    pub smalld: &'a SmallD<'a>,
+    pub payload: Payload,
+}
+
+pub type Listener<'a> = dyn Fn(&Event<'_>) -> () + Send + 'a;
 
 pub struct SmallD<'a> {
     pub token: String,
@@ -63,7 +67,7 @@ impl<'a> SmallD<'a> {
 
     pub fn on_gateway_payload<F>(&mut self, f: F)
     where
-        F: Fn(&Payload) -> () + Send + 'a,
+        F: Fn(&Event) -> () + Send + 'a,
     {
         self.listeners.push(Box::new(f));
     }
@@ -107,8 +111,12 @@ impl<'a> SmallD<'a> {
             loop {
                 match self.gateway.read()? {
                     Message::Payload(p) => {
+                        let evt = Event {
+                            smalld: &self,
+                            payload: p,
+                        };
                         for l in self.listeners.iter() {
-                            l(&p)
+                            l(&evt)
                         }
                     }
                     Message::Close { .. } => break,
