@@ -2,12 +2,14 @@ use retry::delay::Fixed;
 use retry::retry;
 use serde_json::Value;
 use std::env;
+use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use ureq::{Agent, AgentBuilder};
 use url::Url;
 
 use crate::gateway::{Gateway, Message};
 use crate::identify::Identify;
+use crate::listeners::Listeners;
 use crate::payload::Payload;
 
 const V8_URL: &str = "https://discord.com/api/v8";
@@ -17,14 +19,12 @@ pub struct Event<'a> {
     pub payload: Payload,
 }
 
-pub type Listener = dyn Fn(&Event<'_>) -> () + Send + 'static;
-
 pub struct SmallD {
     pub token: String,
     base_url: Url,
     http: Agent,
-    gateway: Gateway,
-    listeners: Vec<Box<Listener>>,
+    gateway: Arc<Gateway>,
+    listeners: Arc<Mutex<Listeners>>,
 }
 
 #[derive(Error, Debug)]
@@ -57,8 +57,8 @@ impl SmallD {
             token: token,
             base_url: base_url,
             http: AgentBuilder::new().build(),
-            gateway: Gateway::new(),
-            listeners: vec![],
+            gateway: Arc::new(Gateway::new()),
+            listeners: Arc::new(Mutex::new(Listeners::new())),
         };
 
         Identify::attach(&mut smalld);
@@ -68,9 +68,10 @@ impl SmallD {
 
     pub fn on_gateway_payload<F>(&mut self, f: F)
     where
-        F: Fn(&Event) -> () + Send + 'static,
+        F: Fn(&Event) -> () + Send + Sync + 'static,
     {
-        self.listeners.push(Box::new(f));
+        let mut guard = self.listeners.lock().unwrap();
+        guard.add(f);
     }
 
     pub fn send_gateway_payload(&self, payload: &Payload) -> Result<(), Error> {
@@ -116,9 +117,8 @@ impl SmallD {
                             smalld: &self,
                             payload: p,
                         };
-                        for l in self.listeners.iter() {
-                            l(&evt)
-                        }
+                        let guard = self.listeners.lock().unwrap();
+                        guard.notify(&evt);
                     }
                     Message::Close { .. } => break,
                 }
