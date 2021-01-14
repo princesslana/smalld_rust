@@ -6,8 +6,9 @@ use thiserror::Error;
 use ureq::{Agent, AgentBuilder};
 use url::Url;
 
-use crate::gateway::{Gateway, Message, Payload};
+use crate::gateway::{Gateway, Message};
 use crate::identify::Identify;
+use crate::payload::Payload;
 
 const V8_URL: &str = "https://discord.com/api/v8";
 
@@ -72,7 +73,7 @@ impl<'a> SmallD<'a> {
         self.listeners.push(Box::new(f));
     }
 
-    pub fn send_gateway_payload(&self, payload: Payload) -> Result<(), Error> {
+    pub fn send_gateway_payload(&self, payload: &Payload) -> Result<(), Error> {
         self.gateway.send(payload)
     }
 

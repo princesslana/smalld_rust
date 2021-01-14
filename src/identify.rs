@@ -21,17 +21,14 @@ impl Identify {
     }
 
     fn identify(&self, smalld: &SmallD) {
-        if let Err(err) = smalld.send_gateway_payload(Payload {
-            op: 2,
-            d: Some(json!({ "token": smalld.token,
-            "properties": {
-                "$os": env::consts::OS,
-                "$browser": "smalld_rust",
-                "$device": "smalld_rust"
-            }})),
-            s: None,
-            t: None,
-        }) {
+        let d = json!({ "token": smalld.token,
+        "properties": {
+            "$os": env::consts::OS,
+            "$browser": "smalld_rust",
+            "$device": "smalld_rust"
+        }});
+
+        if let Err(err) = smalld.send_gateway_payload(Payload::op(2).d(d)) {
             warn!("Error sending identify payload: {}", err);
         }
     }
