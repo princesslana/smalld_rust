@@ -2,7 +2,7 @@ use log::warn;
 use serde_json::json;
 use std::env;
 
-use crate::{Payload, SmallD};
+use crate::{Op, Payload, SmallD};
 
 pub struct Identify {}
 
@@ -16,7 +16,7 @@ impl Identify {
 
     fn on_gateway_payload(&self, smalld: &SmallD, p: &Payload) {
         match p {
-            Payload { op: 10, .. } => self.identify(&smalld),
+            Payload { op: Op::Hello, .. } => self.identify(&smalld),
             _ => (),
         }
     }
@@ -29,7 +29,7 @@ impl Identify {
             "$device": "smalld_rust"
         }});
 
-        if let Err(err) = smalld.send_gateway_payload(Payload::op(2).d(d)) {
+        if let Err(err) = smalld.send_gateway_payload(Payload::op(Op::Identify).d(d)) {
             warn!("Error sending identify payload: {}", err);
         }
     }
