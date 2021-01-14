@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use std::env;
 use ureq::Agent;
 
-use crate::SmallD;
+use crate::{Payload, SmallD};
 
 pub struct Identify {}
 
@@ -14,8 +14,8 @@ impl Identify {
         smalld.on_gateway_payload(move |p| identify.on_gateway_payload(p));
     }
 
-    fn on_gateway_payload(&self, p: &Value) {
-        info!("payload received in identify! {}", p);
+    fn on_gateway_payload(&self, p: &Payload) {
+        info!("payload received in identify! {:?}", p);
     }
     /*
     fn identify(&mut self) {

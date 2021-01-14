@@ -1,9 +1,10 @@
 use log::debug;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::convert::From;
 use std::sync::Mutex;
 use tungstenite::client::AutoStream;
-use tungstenite::{connect, Message, WebSocket};
+use tungstenite::{connect, Message as WsMessage, WebSocket};
 use url::Url;
 
 use crate::smalld::Error;
@@ -14,12 +15,18 @@ pub struct Gateway {
     web_socket: Mutex<Option<WS>>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Payload {
     op: u8,
     d: Option<Value>,
     t: Option<String>,
     s: Option<u64>,
+}
+
+#[derive(Debug)]
+pub enum Message {
+    Payload(Payload),
+    Close { code: Option<u16>, reason: String },
 }
 
 impl Gateway {
@@ -56,16 +63,48 @@ impl Gateway {
         f(ws).map_err(|e| e.into())
     }
 
-    pub fn send<S: AsRef<str>>(&self, payload: S) -> Result<(), Error> {
-        self.with_web_socket(|ws| {
-            let txt: String = payload.as_ref().to_string();
-            debug!("Sending to gateway: {}", txt);
-            ws.write_message(Message::Text(txt))
-        })
+    pub fn send(&self, payload: Payload) -> Result<(), Error> {
+        let txt: String = serde_json::to_string(&payload).map_err(|_e| {
+            Error::IllegalArgumentError(format!("Unable to convert payload to json {:?}", payload))
+        })?;
+
+        debug!("Sending to gateway: {}", txt);
+
+        let txt_ref: &str = txt.as_ref();
+
+        self.with_web_socket(|ws| ws.write_message(WsMessage::text(txt_ref)))
     }
 
     pub fn read(&self) -> Result<Message, Error> {
-        self.with_web_socket(|ws| ws.read_message())
+        let ws_msg = self.with_web_socket(|ws| ws.read_message())?;
+
+        let msg = match ws_msg {
+            WsMessage::Text(s) => {
+                let payload = serde_json::from_str(&s).map_err(|_e| {
+                    Error::IllegalStateError(format!("Bad payload received from gateway: {}", s))
+                })?;
+                Message::Payload(payload)
+            }
+            WsMessage::Close(why) => {
+                self.close();
+
+                why.map_or(
+                    Message::Close {
+                        code: None,
+                        reason: "Unknown".to_string(),
+                    },
+                    |c| Message::Close {
+                        code: Some(c.code.into()),
+                        reason: c.reason.to_string(),
+                    },
+                )
+            }
+            WsMessage::Ping(_) | WsMessage::Pong(_) | WsMessage::Binary(_) => self.read()?,
+        };
+
+        debug!("Received from Gatway: {:?}", msg);
+
+        Ok(msg)
     }
 }
 

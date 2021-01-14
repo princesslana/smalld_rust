@@ -6,7 +6,7 @@ fn main() {
 
     let mut smalld: SmallD = SmallD::new().expect("Failed to initialize smalld");
 
-    smalld.on_gateway_payload(|p| info!("payload received in ping bot! {}", p));
+    smalld.on_gateway_payload(|p| info!("payload received in ping bot! {:?}", p));
 
     smalld.run();
 }
