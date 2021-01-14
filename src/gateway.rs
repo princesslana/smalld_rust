@@ -6,8 +6,8 @@ use tungstenite::stream::Stream;
 use tungstenite::{connect, Message as WsMessage, WebSocket};
 use url::Url;
 
+use crate::error::Error;
 use crate::payload::Payload;
-use crate::smalld::Error;
 
 type WS = WebSocket<AutoStream>;
 
