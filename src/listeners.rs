@@ -1,6 +1,6 @@
 use crate::smalld::Event;
 
-pub type Listener = dyn Fn(&Event<'_>) -> () + Send + Sync + 'static;
+pub type Listener = dyn Fn(&Event<'_>) + Send + Sync + 'static;
 
 pub struct Listeners {
     listeners: Vec<Box<Listener>>,
@@ -15,7 +15,7 @@ impl Listeners {
 
     pub fn add<F>(&mut self, f: F)
     where
-        F: Fn(&Event<'_>) -> () + Send + Sync + 'static,
+        F: Fn(&Event<'_>) + Send + Sync + 'static,
     {
         self.listeners.push(Box::new(f));
     }

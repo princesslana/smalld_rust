@@ -58,8 +58,8 @@ impl SmallD {
             .map_err(|_e| Error::ConfigurationError("Could not find Discord token".to_string()))?;
 
         let mut smalld: SmallD = SmallD {
-            token: token,
-            base_url: base_url,
+            token,
+            base_url,
             http: AgentBuilder::new().build(),
             gateway: Arc::new(Gateway::new()),
             listeners: Arc::new(Mutex::new(Listeners::new())),
@@ -73,7 +73,7 @@ impl SmallD {
 
     pub fn on_gateway_payload<F>(&mut self, f: F)
     where
-        F: Fn(&Event) -> () + Send + Sync + 'static,
+        F: Fn(&Event) + Send + Sync + 'static,
     {
         let mut guard = self.listeners.lock().unwrap();
         guard.add(f);
@@ -105,9 +105,9 @@ impl SmallD {
                 .get("/gateway/bot")?
                 .get("url")
                 .and_then(Value::as_str)
-                .ok_or(Error::IllegalStateError(
-                    "Could not get web socket url".to_string(),
-                ))?
+                .ok_or_else(|| {
+                    Error::IllegalStateError("Could not get web socket url".to_string())
+                })?
                 .to_owned();
 
             let ws_url = Url::parse(&ws_url_str).map_err(|_e| {
