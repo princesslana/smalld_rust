@@ -4,11 +4,15 @@ use std::env;
 
 use crate::{Op, Payload, SmallD};
 
-pub struct Identify {}
+pub struct Identify {
+    token: String,
+}
 
 impl Identify {
-    pub fn attach(smalld: &mut SmallD) {
-        let identify: Identify = Identify {};
+    pub fn attach<S: Into<String>>(smalld: &mut SmallD, token: S) {
+        let identify = Identify {
+            token: token.into(),
+        };
         let smalld_clone = smalld.clone();
 
         smalld.on_gateway_payload(move |p| identify.on_gateway_payload(&smalld_clone, p));
@@ -22,7 +26,7 @@ impl Identify {
     }
 
     fn identify(&self, smalld: &SmallD) {
-        let d = json!({ "token": smalld.token(),
+        let d = json!({ "token": self.token,
         "properties": {
             "$os": env::consts::OS,
             "$browser": "smalld_rust",

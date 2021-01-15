@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Princess Lana"]
 edition = "2018"
 
+[lib]
+name = "smalld_rust"
+path = "src/lib.rs"
+
 [[bin]]
 name = "ping_bot"
 path = "src/examples/ping_bot.rs"

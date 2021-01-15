@@ -15,55 +15,18 @@ use std::thread::sleep;
 use std::time::Duration;
 use url::Url;
 
-const V8_URL: &str = "https://discord.com/api/v8";
+const V8_URL: &'static str = "https://discord.com/api/v8";
 
 #[derive(Clone)]
 pub struct SmallD {
-    config: Config,
     http: Arc<Http>,
     gateway: Arc<Gateway>,
     listeners: Arc<Mutex<Listeners<Payload>>>,
 }
 
-#[derive(Clone)]
-pub struct Config {
-    pub token: String,
-    pub base_url: Url,
-}
-
 impl SmallD {
     pub fn new() -> Result<SmallD, Error> {
-        let base_url: Url = Url::parse(V8_URL)
-            .map_err(|_e| Error::ConfigurationError(format!("Bad base url: {}", V8_URL)))?;
-
-        if base_url.cannot_be_a_base() {
-            return Err(Error::ConfigurationError(format!(
-                "Bad base url: {}",
-                base_url
-            )));
-        }
-
-        let token: String = env::var("SMALLD_TOKEN")
-            .map_err(|_e| Error::ConfigurationError("Could not find Discord token".to_string()))?;
-
-        let config = Config { token, base_url };
-        let config_clone = config.clone();
-
-        let mut smalld: SmallD = SmallD {
-            config: config_clone,
-            http: Arc::new(Http::new(&config)),
-            gateway: Arc::new(Gateway::new()),
-            listeners: Arc::new(Mutex::new(Listeners::new())),
-        };
-
-        Heartbeat::attach(&mut smalld);
-        Identify::attach(&mut smalld);
-
-        Ok(smalld)
-    }
-
-    pub fn token(&self) -> &String {
-        &self.config.token
+        SmallDBuilder::new().build()
     }
 
     pub fn on_gateway_payload<F>(&mut self, f: F)
@@ -127,5 +90,72 @@ impl SmallD {
         }) {
             warn!("Error running Smalld: {}", err);
         }
+    }
+}
+
+pub struct SmallDBuilder {
+    token: Option<String>,
+    base_url: String,
+}
+
+impl SmallDBuilder {
+    fn new() -> SmallDBuilder {
+        SmallDBuilder {
+            token: None,
+            base_url: V8_URL.to_string(),
+        }
+    }
+
+    pub fn token<S: Into<String>>(&mut self, s: S) -> &Self {
+        self.token = Some(s.into());
+        self
+    }
+
+    pub fn base_url<S: Into<String>>(&mut self, s: S) -> &Self {
+        self.base_url = s.into();
+        self
+    }
+
+    fn parse_base_url<S: AsRef<str>>(s: S) -> Result<Url, Error> {
+        let error = || {
+            Err(Error::ConfigurationError(format!(
+                "Bad base_url: {}",
+                s.as_ref()
+            )))
+        };
+
+        match Url::parse(s.as_ref()) {
+            Ok(url) if url.cannot_be_a_base() => error(),
+            Err(_) => error(),
+            Ok(url) => Ok(url),
+        }
+    }
+
+    fn token_from_env() -> Option<String> {
+        match env::var("SMALLD_TOKEN") {
+            Ok(t) => Some(t),
+            Err(_) => None,
+        }
+    }
+
+    pub fn build(&self) -> Result<SmallD, Error> {
+        let token = self
+            .token
+            .clone()
+            .or_else(SmallDBuilder::token_from_env)
+            .ok_or_else(|| Error::ConfigurationError("No Discord token provided".to_string()))?;
+
+        let base_url = SmallDBuilder::parse_base_url(&self.base_url)?;
+
+        let mut smalld: SmallD = SmallD {
+            http: Arc::new(Http::new(token.clone(), base_url)),
+            gateway: Arc::new(Gateway::new()),
+            listeners: Arc::new(Mutex::new(Listeners::new())),
+        };
+
+        Heartbeat::attach(&mut smalld);
+        Identify::attach(&mut smalld, token);
+
+        Ok(smalld)
     }
 }
