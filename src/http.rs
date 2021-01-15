@@ -1,5 +1,4 @@
 use crate::error::Error;
-use crate::smalld::Config;
 use serde_json::Value;
 use ureq::{Agent, AgentBuilder};
 use url::Url;
@@ -11,10 +10,10 @@ pub struct Http {
 }
 
 impl Http {
-    pub fn new(config: &Config) -> Http {
+    pub fn new<S: Into<String>>(token: S, base_url: Url) -> Http {
         Http {
-            token: config.token.clone(),
-            base_url: config.base_url.clone(),
+            token: token.into(),
+            base_url,
             agent: AgentBuilder::new().build(),
         }
     }

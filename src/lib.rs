@@ -1,6 +1,6 @@
 pub use crate::error::Error;
 pub use crate::payload::{Op, Payload};
-pub use crate::smalld::SmallD;
+pub use crate::smalld::{SmallD, SmallDBuilder};
 
 mod error;
 mod gateway;
