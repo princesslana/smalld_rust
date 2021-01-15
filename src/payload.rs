@@ -3,6 +3,7 @@ use serde::de::{self, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::convert::TryFrom;
 use std::fmt;
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -22,7 +23,7 @@ pub struct Payload {
 impl Payload {
     pub fn op(op: Op) -> Payload {
         Payload {
-            op: op,
+            op,
             d: None,
             s: None,
             t: None,
@@ -45,7 +46,7 @@ impl Payload {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Op {
     Dispatch,
     Heartbeat,
@@ -63,38 +64,40 @@ pub enum Op {
 
 impl From<u8> for Op {
     fn from(op: u8) -> Self {
+        use Op::*;
         match op {
-            0 => Op::Dispatch,
-            1 => Op::Heartbeat,
-            2 => Op::Identify,
-            3 => Op::PresenceUpdate,
-            4 => Op::VoiceStateUpdate,
-            6 => Op::Resume,
-            7 => Op::Reconnect,
-            8 => Op::RequestGuildMembers,
-            9 => Op::InvalidSession,
-            10 => Op::Hello,
-            11 => Op::HeartbeatAck,
-            n => Op::Unknown(n),
+            0 => Dispatch,
+            1 => Heartbeat,
+            2 => Identify,
+            3 => PresenceUpdate,
+            4 => VoiceStateUpdate,
+            6 => Resume,
+            7 => Reconnect,
+            8 => RequestGuildMembers,
+            9 => InvalidSession,
+            10 => Hello,
+            11 => HeartbeatAck,
+            n => Unknown(n),
         }
     }
 }
 
-impl From<&Op> for u8 {
-    fn from(op: &Op) -> Self {
+impl From<Op> for u8 {
+    fn from(op: Op) -> Self {
+        use Op::*;
         match op {
-            Op::Dispatch => 0,
-            Op::Heartbeat => 1,
-            Op::Identify => 2,
-            Op::PresenceUpdate => 3,
-            Op::VoiceStateUpdate => 4,
-            Op::Resume => 6,
-            Op::Reconnect => 7,
-            Op::RequestGuildMembers => 8,
-            Op::InvalidSession => 9,
-            Op::Hello => 10,
-            Op::HeartbeatAck => 11,
-            Op::Unknown(n) => *n,
+            Dispatch => 0,
+            Heartbeat => 1,
+            Identify => 2,
+            PresenceUpdate => 3,
+            VoiceStateUpdate => 4,
+            Resume => 6,
+            Reconnect => 7,
+            RequestGuildMembers => 8,
+            InvalidSession => 9,
+            Hello => 10,
+            HeartbeatAck => 11,
+            Unknown(n) => n,
         }
     }
 }
@@ -104,23 +107,7 @@ impl Serialize for Op {
     where
         S: Serializer,
     {
-        serializer.serialize_u8(self.into())
-    }
-}
-struct OpVisitor;
-
-impl<'a> Visitor<'a> for OpVisitor {
-    type Value = Op;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("an unsigned integer")
-    }
-
-    fn visit_u8<E>(self, value: u8) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        Ok(value.into())
+        serializer.serialize_u8((*self).into())
     }
 }
 
@@ -130,5 +117,24 @@ impl<'a> Deserialize<'a> for Op {
         D: Deserializer<'a>,
     {
         deserializer.deserialize_u8(OpVisitor)
+    }
+}
+
+struct OpVisitor;
+
+impl<'a> Visitor<'a> for OpVisitor {
+    type Value = Op;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("an unsigned integer")
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        let v = u8::try_from(value)
+            .map_err(|e| E::custom(format!("Unable to determine opcode: {}", e)))?;
+        Ok(v.into())
     }
 }
