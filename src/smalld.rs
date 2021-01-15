@@ -3,7 +3,7 @@ use crate::gateway::{Gateway, Message};
 use crate::heartbeat::Heartbeat;
 use crate::identify::Identify;
 use crate::listeners::Listeners;
-use crate::payload::Payload;
+use crate::payload::{Op, Payload};
 use log::warn;
 use retry::delay::Fixed;
 use retry::retry;
@@ -61,6 +61,21 @@ impl SmallD {
     {
         let mut guard = self.listeners.lock().unwrap();
         guard.add(f);
+    }
+
+    pub fn on_event<F>(&mut self, name: &'static str, f: F)
+    where
+        F: Fn(&Value) + Send + Sync + 'static,
+    {
+        self.on_gateway_payload(move |p| match p {
+            Payload {
+                op: Op::Dispatch,
+                t: Some(event_name),
+                d: Some(d),
+                ..
+            } if *event_name == name => f(d),
+            _ => (),
+        });
     }
 
     pub fn send_gateway_payload(&self, payload: &Payload) -> Result<(), Error> {
