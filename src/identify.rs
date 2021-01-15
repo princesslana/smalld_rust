@@ -22,7 +22,7 @@ impl Identify {
     }
 
     fn identify(&self, smalld: &SmallD) {
-        let d = json!({ "token": smalld.token,
+        let d = json!({ "token": smalld.token(),
         "properties": {
             "$os": env::consts::OS,
             "$browser": "smalld_rust",

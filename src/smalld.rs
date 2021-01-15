@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::gateway::{Gateway, Message};
 use crate::heartbeat::Heartbeat;
+use crate::http::Http;
 use crate::identify::Identify;
 use crate::listeners::Listeners;
 use crate::payload::{Op, Payload};
@@ -12,18 +13,22 @@ use std::env;
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
-use ureq::{Agent, AgentBuilder};
 use url::Url;
 
 const V8_URL: &str = "https://discord.com/api/v8";
 
 #[derive(Clone)]
 pub struct SmallD {
-    pub token: String,
-    base_url: Url,
-    http: Agent,
+    config: Config,
+    http: Arc<Http>,
     gateway: Arc<Gateway>,
     listeners: Arc<Mutex<Listeners<Payload>>>,
+}
+
+#[derive(Clone)]
+pub struct Config {
+    pub token: String,
+    pub base_url: Url,
 }
 
 impl SmallD {
@@ -41,10 +46,12 @@ impl SmallD {
         let token: String = env::var("SMALLD_TOKEN")
             .map_err(|_e| Error::ConfigurationError("Could not find Discord token".to_string()))?;
 
+        let config = Config { token, base_url };
+        let config_clone = config.clone();
+
         let mut smalld: SmallD = SmallD {
-            token,
-            base_url,
-            http: AgentBuilder::new().build(),
+            config: config_clone,
+            http: Arc::new(Http::new(&config)),
             gateway: Arc::new(Gateway::new()),
             listeners: Arc::new(Mutex::new(Listeners::new())),
         };
@@ -53,6 +60,10 @@ impl SmallD {
         Identify::attach(&mut smalld);
 
         Ok(smalld)
+    }
+
+    pub fn token(&self) -> &String {
+        &self.config.token
     }
 
     pub fn on_gateway_payload<F>(&mut self, f: F)
@@ -83,19 +94,7 @@ impl SmallD {
     }
 
     pub fn get<S: AsRef<str>>(&self, path: S) -> Result<Value, Error> {
-        let mut url: Url = self.base_url.clone();
-
-        url.path_segments_mut()
-            .map_err(|_e| Error::IllegalArgumentError(format!("Bad path: {}", path.as_ref())))?
-            .pop_if_empty()
-            .extend(path.as_ref().trim_start_matches('/').split('/'));
-
-        self.http
-            .get(url.as_str())
-            .set("Authorization", &format!("Bot {}", self.token))
-            .call()?
-            .into_json()
-            .map_err(|e| e.into())
+        self.http.get(path)
     }
 
     pub fn run(&self) {

@@ -5,6 +5,7 @@ pub use crate::smalld::SmallD;
 mod error;
 mod gateway;
 mod heartbeat;
+mod http;
 mod identify;
 mod listeners;
 mod payload;
