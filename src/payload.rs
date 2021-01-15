@@ -1,10 +1,7 @@
 use serde::de::Deserializer;
-use serde::de::{self, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::convert::TryFrom;
-use std::fmt;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Payload {
@@ -116,25 +113,6 @@ impl<'a> Deserialize<'a> for Op {
     where
         D: Deserializer<'a>,
     {
-        deserializer.deserialize_u8(OpVisitor)
-    }
-}
-
-struct OpVisitor;
-
-impl<'a> Visitor<'a> for OpVisitor {
-    type Value = Op;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("an unsigned integer")
-    }
-
-    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        let v = u8::try_from(value)
-            .map_err(|e| E::custom(format!("Unable to determine opcode: {}", e)))?;
-        Ok(v.into())
+        Ok(u8::deserialize(deserializer)?.into())
     }
 }
