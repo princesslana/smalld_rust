@@ -6,6 +6,10 @@ use serde_json::Value;
 use std::convert::TryFrom;
 use std::fmt;
 
+pub trait PayloadListener {
+    fn on_gateway_payload(&self, payload: &Payload);
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Payload {
     pub op: Op,

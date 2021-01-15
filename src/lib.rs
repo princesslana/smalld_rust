@@ -1,5 +1,5 @@
 pub use crate::error::Error;
-pub use crate::payload::{Op, Payload};
+pub use crate::payload::{Op, Payload, PayloadListener};
 pub use crate::smalld::SmallD;
 
 mod error;

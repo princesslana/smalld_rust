@@ -3,7 +3,7 @@ use crate::gateway::{Gateway, Message};
 use crate::heartbeat::Heartbeat;
 use crate::identify::Identify;
 use crate::listeners::Listeners;
-use crate::payload::{Op, Payload};
+use crate::payload::{Op, Payload, PayloadListener};
 use log::warn;
 use retry::delay::Fixed;
 use retry::retry;
@@ -50,7 +50,8 @@ impl SmallD {
         };
 
         Heartbeat::attach(&mut smalld);
-        Identify::attach(&mut smalld);
+
+        smalld.add_listener(Identify::new(smalld.clone()));
 
         Ok(smalld)
     }
@@ -63,8 +64,9 @@ impl SmallD {
         guard.add(f);
     }
 
-    pub fn on_event<F>(&mut self, name: &'static str, f: F)
+    pub fn on_event<S, F>(&mut self, name: S, f: F)
     where
+        S: AsRef<str> + Send + Sync + 'static,
         F: Fn(&Value) + Send + Sync + 'static,
     {
         self.on_gateway_payload(move |p| match p {
@@ -73,9 +75,13 @@ impl SmallD {
                 t: Some(event_name),
                 d: Some(d),
                 ..
-            } if *event_name == name => f(d),
+            } if event_name == name.as_ref() => f(d),
             _ => (),
         });
+    }
+
+    pub fn add_listener(&mut self, listener: impl PayloadListener + Send + Sync + 'static) {
+        self.on_gateway_payload(move |p| listener.on_gateway_payload(p));
     }
 
     pub fn send_gateway_payload(&self, payload: &Payload) -> Result<(), Error> {
