@@ -15,7 +15,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use url::Url;
 
-const V8_URL: &'static str = "https://discord.com/api/v8";
+const V8_URL: &str = "https://discord.com/api/v8";
 
 #[derive(Clone)]
 pub struct SmallD {
