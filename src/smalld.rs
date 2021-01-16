@@ -15,7 +15,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use url::Url;
 
-const V8_URL: &'static str = "https://discord.com/api/v8";
+const V8_URL: &str = "https://discord.com/api/v8";
 
 #[derive(Clone)]
 pub struct SmallD {
@@ -29,7 +29,7 @@ impl SmallD {
         SmallDBuilder::new().build()
     }
 
-    pub fn on_gateway_payload<F>(&mut self, f: F)
+    pub fn on_gateway_payload<F>(&self, f: F)
     where
         F: Fn(&Payload) + Send + Sync + 'static,
     {
@@ -37,17 +37,20 @@ impl SmallD {
         guard.add(f);
     }
 
-    pub fn on_event<F>(&mut self, name: &'static str, f: F)
+    pub fn on_event<S, F>(&self, name: S, f: F)
     where
+        S: Into<String>,
         F: Fn(&Value) + Send + Sync + 'static,
     {
+        let expected_name = name.into();
+
         self.on_gateway_payload(move |p| match p {
             Payload {
                 op: Op::Dispatch,
-                t: Some(event_name),
+                t: Some(actual_name),
                 d: Some(d),
                 ..
-            } if *event_name == name => f(d),
+            } if *actual_name == expected_name => f(d),
             _ => (),
         });
     }
