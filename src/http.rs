@@ -18,7 +18,7 @@ impl Http {
         }
     }
 
-    pub fn get<S: AsRef<str>>(&self, path: S) -> Result<Value, Error> {
+    fn build_url<S: AsRef<str>>(&self, path: S) -> Result<Url, Error> {
         let mut url: Url = self.base_url.clone();
 
         url.path_segments_mut()
@@ -26,10 +26,23 @@ impl Http {
             .pop_if_empty()
             .extend(path.as_ref().trim_start_matches('/').split('/'));
 
+        Ok(url)
+    }
+
+    pub fn get<S: AsRef<str>>(&self, path: S) -> Result<Value, Error> {
         self.agent
-            .get(url.as_str())
+            .get(self.build_url(path)?.as_str())
             .set("Authorization", &format!("Bot {}", self.token))
             .call()?
+            .into_json()
+            .map_err(|e| e.into())
+    }
+
+    pub fn post<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
+        self.agent
+            .post(self.build_url(path)?.as_str())
+            .set("Authorization", &format!("Bot {}", self.token))
+            .send_json(json)?
             .into_json()
             .map_err(|e| e.into())
     }

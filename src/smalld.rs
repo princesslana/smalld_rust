@@ -60,6 +60,10 @@ impl SmallD {
         self.http.get(path)
     }
 
+    pub fn post<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
+        self.http.post(path, json)
+    }
+
     pub fn run(&self) {
         if let Err(err) = retry(Fixed::from_millis(5000), || {
             let ws_url_str = self
