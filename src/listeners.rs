@@ -1,11 +1,14 @@
-pub type Listener<T> = dyn Fn(&T) + Send + Sync + 'static;
+use crate::payload::Payload;
+use crate::smalld::SmallD;
 
-pub struct Listeners<T> {
-    listeners: Vec<Box<Listener<T>>>,
+pub type Listener = dyn Fn(&SmallD, &Payload) + Send + Sync + 'static;
+
+pub struct Listeners {
+    listeners: Vec<Box<Listener>>,
 }
 
-impl<T> Listeners<T> {
-    pub fn new() -> Listeners<T> {
+impl Listeners {
+    pub fn new() -> Listeners {
         Listeners {
             listeners: Vec::new(),
         }
@@ -13,14 +16,14 @@ impl<T> Listeners<T> {
 
     pub fn add<F>(&mut self, f: F)
     where
-        F: Fn(&T) + Send + Sync + 'static,
+        F: Fn(&SmallD, &Payload) + Send + Sync + 'static,
     {
         self.listeners.push(Box::new(f));
     }
 
-    pub fn notify(&self, t: T) {
+    pub fn notify(&self, smalld: &SmallD, payload: &Payload) {
         for l in self.listeners.iter() {
-            l(&t)
+            l(smalld, payload);
         }
     }
 }

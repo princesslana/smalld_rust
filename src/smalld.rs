@@ -21,7 +21,7 @@ const V8_URL: &'static str = "https://discord.com/api/v8";
 pub struct SmallD {
     http: Arc<Http>,
     gateway: Arc<Gateway>,
-    listeners: Arc<Mutex<Listeners<Payload>>>,
+    listeners: Arc<Mutex<Listeners>>,
 }
 
 impl SmallD {
@@ -31,7 +31,7 @@ impl SmallD {
 
     pub fn on_gateway_payload<F>(&mut self, f: F)
     where
-        F: Fn(&Payload) + Send + Sync + 'static,
+        F: Fn(&SmallD, &Payload) + Send + Sync + 'static,
     {
         let mut guard = self.listeners.lock().unwrap();
         guard.add(f);
@@ -39,15 +39,15 @@ impl SmallD {
 
     pub fn on_event<F>(&mut self, name: &'static str, f: F)
     where
-        F: Fn(&Value) + Send + Sync + 'static,
+        F: Fn(&SmallD, &Value) + Send + Sync + 'static,
     {
-        self.on_gateway_payload(move |p| match p {
+        self.on_gateway_payload(move |s, p| match p {
             Payload {
                 op: Op::Dispatch,
                 t: Some(event_name),
                 d: Some(d),
                 ..
-            } if *event_name == name => f(d),
+            } if *event_name == name => f(s, d),
             _ => (),
         });
     }
@@ -84,7 +84,7 @@ impl SmallD {
                 match self.gateway.read()? {
                     Message::Payload(p) => {
                         let guard = self.listeners.lock().unwrap();
-                        guard.notify(p);
+                        guard.notify(self, &p);
                     }
                     Message::Close { .. } => break,
                     Message::None => sleep(Duration::from_millis(100)),

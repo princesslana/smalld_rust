@@ -23,7 +23,7 @@ impl Heartbeat {
             spawn(move || Heartbeat::run(&smalld, heartbeat));
         }
 
-        smalld.on_gateway_payload(move |p| {
+        smalld.on_gateway_payload(move |_, p| {
             let mut lock = heartbeat.lock().unwrap();
             lock.on_gateway_payload(p)
         });
