@@ -13,9 +13,8 @@ impl Identify {
         let identify = Identify {
             token: token.into(),
         };
-        let smalld_clone = smalld.clone();
 
-        smalld.on_gateway_payload(move |p| identify.on_gateway_payload(&smalld_clone, p));
+        smalld.on_gateway_payload(move |s, p| identify.on_gateway_payload(s, p));
     }
 
     fn on_gateway_payload(&self, smalld: &SmallD, p: &Payload) {
