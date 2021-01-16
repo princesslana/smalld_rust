@@ -95,6 +95,10 @@ impl SmallD {
             warn!("Error running Smalld: {}", err);
         }
     }
+
+    pub fn reconnect(&self) {
+        self.gateway.close(4900, "Reconnecting...");
+    }
 }
 
 pub struct SmallDBuilder {
