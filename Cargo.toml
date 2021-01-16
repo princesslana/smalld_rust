@@ -8,13 +8,12 @@ edition = "2018"
 name = "smalld_rust"
 path = "src/lib.rs"
 
-[[bin]]
+[[example]]
 name = "ping_bot"
 path = "src/examples/ping_bot.rs"
 
 [dependencies]
 log = "0"
-pretty_env_logger = "0"
 retry = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -22,3 +21,7 @@ thiserror = "1"
 tungstenite = "0"
 ureq = { version = "2", features = ["charset", "json"] }
 url = "2"
+
+[dev-dependencies]
+pretty_env_logger = "0"
+
