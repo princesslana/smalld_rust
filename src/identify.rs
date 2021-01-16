@@ -20,6 +20,9 @@ impl Identify {
     fn on_gateway_payload(&self, smalld: &SmallD, p: &Payload) {
         match p {
             Payload { op: Op::Hello, .. } => self.identify(&smalld),
+            Payload {
+                op: Op::Reconnect, ..
+            } => smalld.reconnect(),
             _ => (),
         }
     }

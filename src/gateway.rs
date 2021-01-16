@@ -1,13 +1,14 @@
-use log::debug;
+use crate::error::Error;
+use crate::payload::Payload;
+use log::{debug, warn};
+use std::borrow::Cow;
 use std::io::ErrorKind;
 use std::sync::Mutex;
 use tungstenite::client::AutoStream;
+use tungstenite::protocol::frame::CloseFrame;
 use tungstenite::stream::Stream;
 use tungstenite::{connect, Message as WsMessage, WebSocket};
 use url::Url;
-
-use crate::error::Error;
-use crate::payload::Payload;
 
 type WS = WebSocket<AutoStream>;
 
@@ -36,7 +37,6 @@ impl Gateway {
             Stream::Plain(s) => s.set_nonblocking(true),
             Stream::Tls(s) => s.get_mut().set_nonblocking(true),
         }?;
-        //socket.get_mut().set_nonblocking();
 
         let mut lock = self.web_socket.lock().unwrap();
         *lock = Some(socket);
@@ -44,9 +44,22 @@ impl Gateway {
         Ok(())
     }
 
-    pub fn close(&self) {
+    pub fn close<S: AsRef<str>>(&self, code: u16, reason: S) {
         let mut lock = self.web_socket.lock().unwrap();
-        *lock = None
+
+        match lock.as_mut() {
+            Some(ws) if ws.can_write() => {
+                if let Err(err) = ws.close(Some(CloseFrame {
+                    code: code.into(),
+                    reason: Cow::from(reason.as_ref()),
+                })) {
+                    warn!("Error sending websocket close: {}", err);
+                }
+            }
+            _ => (),
+        }
+
+        *lock = None;
     }
 
     fn with_web_socket<F, R>(&self, f: F) -> Result<R, Error>
@@ -86,7 +99,7 @@ impl Gateway {
             }
             Ok(WsMessage::Close(why)) => {
                 debug!("Close !!! {:?}", why);
-                self.close();
+                self.close(1000, "Closed by Discord");
 
                 Ok(why.map_or(
                     Message::Close {
@@ -112,6 +125,6 @@ impl Gateway {
 
 impl Drop for Gateway {
     fn drop(&mut self) {
-        self.close()
+        self.close(1000, "Close due to drop")
     }
 }
