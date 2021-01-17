@@ -31,15 +31,15 @@ impl SmallD {
 
     pub fn on_gateway_payload<F>(&self, f: F)
     where
-        F: Fn(&SmallD, &Payload) + Send + Sync + 'static,
+        F: FnMut(&SmallD, &Payload) + Send + Sync + 'static,
     {
         let mut guard = self.listeners.lock().unwrap();
         guard.add(f);
     }
 
-    pub fn on_event<F>(&self, name: &'static str, f: F)
+    pub fn on_event<F>(&self, name: &'static str, mut f: F)
     where
-        F: Fn(&SmallD, &Value) + Send + Sync + 'static,
+        F: FnMut(&SmallD, &Value) + Send + Sync + 'static,
     {
         self.on_gateway_payload(move |s, p| match p {
             Payload {
@@ -83,7 +83,7 @@ impl SmallD {
             loop {
                 match self.gateway.read()? {
                     Message::Payload(p) => {
-                        let guard = self.listeners.lock().unwrap();
+                        let mut guard = self.listeners.lock().unwrap();
                         guard.notify(self, &p);
                     }
                     Message::Close { .. } => break,
