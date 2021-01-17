@@ -29,7 +29,7 @@ impl SmallD {
         SmallDBuilder::new().build()
     }
 
-    pub fn on_gateway_payload<F>(&mut self, f: F)
+    pub fn on_gateway_payload<F>(&self, f: F)
     where
         F: Fn(&SmallD, &Payload) + Send + Sync + 'static,
     {
@@ -37,7 +37,7 @@ impl SmallD {
         guard.add(f);
     }
 
-    pub fn on_event<F>(&mut self, name: &'static str, f: F)
+    pub fn on_event<F>(&self, name: &'static str, f: F)
     where
         F: Fn(&SmallD, &Value) + Send + Sync + 'static,
     {
@@ -155,14 +155,14 @@ impl SmallDBuilder {
 
         let base_url = SmallDBuilder::parse_base_url(&self.base_url)?;
 
-        let mut smalld: SmallD = SmallD {
+        let smalld: SmallD = SmallD {
             http: Arc::new(Http::new(token.clone(), base_url)),
             gateway: Arc::new(Gateway::new()),
             listeners: Arc::new(Mutex::new(Listeners::new())),
         };
 
-        Heartbeat::attach(&mut smalld);
-        Identify::attach(&mut smalld, token);
+        Heartbeat::new().attach(&smalld);
+        Identify::new(token).attach(&smalld);
 
         Ok(smalld)
     }

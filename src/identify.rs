@@ -9,12 +9,14 @@ pub struct Identify {
 }
 
 impl Identify {
-    pub fn attach<S: Into<String>>(smalld: &mut SmallD, token: S) {
-        let identify = Identify {
+    pub fn new<S: Into<String>>(token: S) -> Self {
+        Identify {
             token: token.into(),
-        };
+        }
+    }
 
-        smalld.on_gateway_payload(move |s, p| identify.on_gateway_payload(s, p));
+    pub fn attach(self, smalld: &SmallD) {
+        smalld.on_gateway_payload(move |s, p| self.on_gateway_payload(s, p));
     }
 
     fn on_gateway_payload(&self, smalld: &SmallD, p: &Payload) {
