@@ -64,7 +64,7 @@ impl Gateway {
 
     fn with_web_socket<F, R>(&self, f: F) -> Result<R, Error>
     where
-        F: Fn(&mut WS) -> Result<R, tungstenite::Error>,
+        F: FnOnce(&mut WS) -> Result<R, tungstenite::Error>,
     {
         let mut lock = self.web_socket.lock().unwrap();
 

@@ -3,6 +3,7 @@ name = "smalld_rust"
 version = "0.1.0"
 authors = ["Princess Lana"]
 edition = "2018"
+repository = "https://github.com/princesslana/smalld_rust"
 
 [lib]
 name = "smalld_rust"
@@ -10,7 +11,7 @@ path = "src/lib.rs"
 
 [[example]]
 name = "ping_bot"
-path = "src/examples/ping_bot.rs"
+path = "examples/ping_bot.rs"
 
 [dependencies]
 log = "0"
