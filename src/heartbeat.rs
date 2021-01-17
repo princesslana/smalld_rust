@@ -1,6 +1,7 @@
 use crate::{Op, Payload, SmallD};
 use log::warn;
 use serde_json::json;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, Once};
 use std::thread::{sleep, spawn};
 use std::time::Duration;
@@ -9,6 +10,7 @@ use std::time::Duration;
 pub struct Heartbeat {
     interval: Arc<Mutex<Option<u64>>>,
     sequence_number: Arc<Mutex<Option<u64>>>,
+    ack_received: Arc<AtomicBool>,
     thread: Arc<Once>,
 }
 
@@ -17,6 +19,7 @@ impl Heartbeat {
         Heartbeat {
             interval: Arc::new(Mutex::new(None)),
             sequence_number: Arc::new(Mutex::new(None)),
+            ack_received: Arc::new(AtomicBool::new(false)),
             thread: Arc::new(Once::new()),
         }
     }
@@ -42,7 +45,20 @@ impl Heartbeat {
                     });
                 }
             }
+
+            Payload {
+                op: Op::HeartbeatAck,
+                ..
+            } => self.set_ack_received(true),
+
+            Payload {
+                op: Op::Dispatch,
+                t: Some(event_name),
+                ..
+            } if event_name == "READY" => self.set_ack_received(true),
+
             Payload { s: Some(s), .. } => self.set_sequence_number(*s),
+
             _ => (),
         }
     }
@@ -65,6 +81,14 @@ impl Heartbeat {
         *lock = Some(sequence_number);
     }
 
+    fn ack_received(&self) -> bool {
+        self.ack_received.load(Ordering::Acquire)
+    }
+
+    fn set_ack_received(&self, ack_received: bool) {
+        self.ack_received.store(ack_received, Ordering::Release);
+    }
+
     fn run(&self, smalld: &SmallD) {
         loop {
             match self.interval() {
@@ -77,7 +101,12 @@ impl Heartbeat {
                 }
             }
 
-            self.send(&smalld);
+            if self.ack_received() {
+                self.set_ack_received(false);
+                self.send(&smalld);
+            } else {
+                smalld.reconnect();
+            }
         }
     }
 
