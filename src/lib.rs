@@ -9,4 +9,5 @@ mod http;
 mod identify;
 mod listeners;
 mod payload;
+mod retry;
 mod smalld;
