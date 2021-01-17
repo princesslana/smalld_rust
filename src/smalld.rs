@@ -5,9 +5,8 @@ use crate::http::Http;
 use crate::identify::Identify;
 use crate::listeners::Listeners;
 use crate::payload::{Op, Payload};
+use crate::retry::retry;
 use log::warn;
-use retry::delay::Fixed;
-use retry::retry;
 use serde_json::Value;
 use std::env;
 use std::sync::{Arc, Mutex};
@@ -65,19 +64,8 @@ impl SmallD {
     }
 
     pub fn run(&self) {
-        if let Err(err) = retry(Fixed::from_millis(5000), || {
-            let ws_url_str = self
-                .get("/gateway/bot")?
-                .get("url")
-                .and_then(Value::as_str)
-                .ok_or_else(|| {
-                    Error::IllegalStateError("Could not get web socket url".to_string())
-                })?
-                .to_owned();
-
-            let ws_url = Url::parse(&ws_url_str).map_err(|_e| {
-                Error::IllegalArgumentError(format!("Bad websocket url: {}", ws_url_str))
-            })?;
+        if let Err(err) = retry(Duration::from_millis(5000), || {
+            let ws_url = self.get_websocket_url()?;
 
             self.gateway.connect(ws_url)?;
             loop {
@@ -86,11 +74,12 @@ impl SmallD {
                         let mut guard = self.listeners.lock().unwrap();
                         guard.notify(self, &p);
                     }
-                    Message::Close { .. } => break,
+                    Message::Close { code, reason } => {
+                        break Err(Error::WebSocketClosed { code, reason })
+                    }
                     Message::None => sleep(Duration::from_millis(100)),
                 }
             }
-            Ok::<(), Error>(())
         }) {
             warn!("Error running Smalld: {}", err);
         }
@@ -98,6 +87,18 @@ impl SmallD {
 
     pub fn reconnect(&self) {
         self.gateway.close(4900, "Reconnecting...");
+    }
+
+    fn get_websocket_url(&self) -> Result<Url, Error> {
+        let ws_url_str = self
+            .get("/gateway/bot")?
+            .get("url")
+            .and_then(Value::as_str)
+            .ok_or_else(|| Error::illegal_state("Could not get web socket url"))?
+            .to_owned();
+
+        Url::parse(&ws_url_str)
+            .map_err(|_e| Error::IllegalArgumentError(format!("Bad websocket url: {}", ws_url_str)))
     }
 }
 
