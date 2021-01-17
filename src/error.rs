@@ -16,3 +16,9 @@ impl From<ureq::Error> for Error {
         Error::HttpError(Box::new(error))
     }
 }
+
+impl Error {
+    pub fn illegal_state<S: Into<String>>(msg: S) -> Error {
+        Error::IllegalStateError(msg.into())
+    }
+}

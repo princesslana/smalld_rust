@@ -1,5 +1,5 @@
 use crate::{Op, Payload, SmallD};
-use log::warn;
+use log::{debug, warn};
 use serde_json::json;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, Once};
@@ -55,7 +55,7 @@ impl Heartbeat {
                 op: Op::Dispatch,
                 t: Some(event_name),
                 ..
-            } if event_name == "READY" => self.set_ack_received(true),
+            } if event_name == "READY" || event_name == "RESUMED" => self.set_ack_received(true),
 
             Payload { s: Some(s), .. } => self.set_sequence_number(*s),
 
@@ -105,6 +105,7 @@ impl Heartbeat {
                 self.set_ack_received(false);
                 self.send(&smalld);
             } else {
+                debug!("No heartbeat ack received. Reconnecting.");
                 smalld.reconnect();
             }
         }
