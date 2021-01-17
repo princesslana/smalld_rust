@@ -5,7 +5,7 @@ use smalld_rust::SmallD;
 fn main() {
     pretty_env_logger::init();
 
-    let mut smalld = SmallD::new().expect("Failed to initialize smalld");
+    let smalld = SmallD::new().expect("Failed to initialize smalld");
 
     smalld.on_event("MESSAGE_CREATE", move |smalld, json| {
         if let Some("++ping") = json.get("content").and_then(|c| c.as_str()) {
