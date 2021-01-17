@@ -29,7 +29,7 @@ impl Http {
     }
 
     pub fn post<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
-        self.with_request("POST", path.as_ref(), move |r| r.send_json(json))
+        self.with_request("POST", path.as_ref(), |r| r.send_json(json))
     }
 
     fn build_url(&self, path: &str) -> Result<Url, Error> {
