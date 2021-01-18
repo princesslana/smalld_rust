@@ -1,21 +1,22 @@
+use crate::{Error, Op, Payload, SmallD};
 use log::warn;
 use serde_json::json;
 use std::env;
 use std::thread::sleep;
 use std::time::Duration;
 
-use crate::{Error, Op, Payload, SmallD};
-
 pub struct Identify {
     token: String,
+    intents_bitmask: u16,
     session_id: Option<String>,
     sequence_number: Option<u64>,
 }
 
 impl Identify {
-    pub fn new<S: Into<String>>(token: S) -> Self {
+    pub fn new<S: Into<String>>(token: S, intents_bitmask: u16) -> Self {
         Identify {
             token: token.into(),
+            intents_bitmask,
             session_id: None,
             sequence_number: None,
         }
@@ -70,12 +71,15 @@ impl Identify {
     }
 
     fn identify(&self, smalld: &SmallD) {
-        let d = json!({ "token": self.token,
-        "properties": {
-            "$os": env::consts::OS,
-            "$browser": "smalld_rust",
-            "$device": "smalld_rust"
-        }});
+        let d = json!({
+            "token": self.token,
+            "properties": {
+                "$os": env::consts::OS,
+                "$browser": "smalld_rust",
+                "$device": "smalld_rust"
+            },
+            "intents": self.intents_bitmask,
+        });
 
         if let Err(err) = smalld.send_gateway_payload(Payload::op(Op::Identify).d(d)) {
             warn!("Error sending identify payload: {}", err);

@@ -3,6 +3,7 @@ use crate::gateway::{Gateway, Message};
 use crate::heartbeat::Heartbeat;
 use crate::http::Http;
 use crate::identify::Identify;
+use crate::intents::Intent;
 use crate::listeners::Listeners;
 use crate::payload::{Op, Payload};
 use crate::retry::retry;
@@ -105,6 +106,7 @@ impl SmallD {
 pub struct SmallDBuilder {
     token: Option<String>,
     base_url: String,
+    intents_bitmask: u16,
 }
 
 impl SmallDBuilder {
@@ -112,6 +114,7 @@ impl SmallDBuilder {
         SmallDBuilder {
             token: None,
             base_url: V8_URL.to_string(),
+            intents_bitmask: Intent::UNPRIVILEGED,
         }
     }
 
@@ -122,6 +125,11 @@ impl SmallDBuilder {
 
     pub fn base_url<S: Into<String>>(&mut self, s: S) -> &Self {
         self.base_url = s.into();
+        self
+    }
+
+    pub fn intents<I: IntoIterator<Item = Intent>>(&mut self, intents: I) -> &Self {
+        self.intents_bitmask = Intent::to_bit_mask(intents);
         self
     }
 
@@ -163,7 +171,7 @@ impl SmallDBuilder {
         };
 
         Heartbeat::new().attach(&smalld);
-        Identify::new(token).attach(&smalld);
+        Identify::new(token, self.intents_bitmask).attach(&smalld);
 
         Ok(smalld)
     }
