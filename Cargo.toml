@@ -1,6 +1,6 @@
 [package]
 name = "smalld_rust"
-version = "0-dev"
+version = "0.0.0-dev"
 authors = ["Princess Lana"]
 edition = "2018"
 description = "A minmalist client for the Discord API"
