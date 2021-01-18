@@ -1,0 +1,17 @@
+name: Release
+
+on:
+  push:
+    tags: ["*.*.*"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: dtolnay/rust-toolchain@stable
+    - name: publish
+      run: |
+        cargo login ${{ secrets.CARGO_TOKEN }}
+        sed -i "s/^version = .*/version = \"$(git describe --tags --dirty --always)\"/" Cargo.toml
+        cargo publish --allow-dirty

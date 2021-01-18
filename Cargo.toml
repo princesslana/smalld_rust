@@ -1,17 +1,15 @@
 [package]
 name = "smalld_rust"
-version = "0.1.0"
+version = "0-dev"
 authors = ["Princess Lana"]
 edition = "2018"
+description = "A minmalist client for the Discord API"
+readme = "README.md"
+homepage = "https://github.com/princesslana/smalld_rust"
 repository = "https://github.com/princesslana/smalld_rust"
-
-[lib]
-name = "smalld_rust"
-path = "src/lib.rs"
-
-[[example]]
-name = "ping_bot"
-path = "examples/ping_bot.rs"
+license = "MIT"
+keywords = ["discord"]
+categories = ["api-bindings"]
 
 [dependencies]
 log = "0"
