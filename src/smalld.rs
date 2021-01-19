@@ -17,6 +17,23 @@ use url::Url;
 
 const V8_URL: &str = "https://discord.com/api/v8";
 
+/// SmallD is the central point for access to the Discord API.
+///
+/// Methods can be split into three categories:
+///   * **Lifecycle**  
+///     The methods for creating, running, and closing the connection with
+///     Discord. These methods are [`new`](SmallD#function.new), [`run`](SmallD#function.run), and
+///     [`reconnect`](SmallD#function.reconnect)
+///
+///   * **Gateway**  
+///     The methods for communicating with the Discord gateway. Receiving is handled via
+///     [`on_gateway_payload`](SmallD#on_gateway_payload) and [`on_event`](SmallD#on_event) and
+///     sending is via [`send_gateway_payload`](SmallD#send_gateway_payload)
+///
+///   * **Resources**
+///     The methods for acessing Discord's rest based resource apis. These methods are
+///     [`get`](SmallD#function.get) and [`post`](SmallD#function.post)
+///     
 #[derive(Clone)]
 pub struct SmallD {
     http: Arc<Http>,
@@ -25,6 +42,7 @@ pub struct SmallD {
 }
 
 impl SmallD {
+    /// Equivalent to [`SmallDBuilder::new().build()`](SmallDBuilder#new).
     pub fn new() -> Result<SmallD, Error> {
         SmallDBuilder::new().build()
     }
@@ -103,6 +121,7 @@ impl SmallD {
     }
 }
 
+/// Builder to configure and create a [`SmallD`](SmallD).
 pub struct SmallDBuilder {
     token: Option<String>,
     base_url: String,
@@ -110,26 +129,32 @@ pub struct SmallDBuilder {
 }
 
 impl SmallDBuilder {
-    fn new() -> SmallDBuilder {
-        SmallDBuilder {
+    /// Creates a [`SmallDBuilder`](SmallDBuilder) configured with useful defaults.
+    /// This includes a token retrieved from the environment variable `SMALLD_TOKEN`,
+    /// all unprivileged [gateway
+    /// intents](https://discord.com/developers/docs/topics/gateway#gateway-intents),
+    /// and to use [v8](https://discord.com/developers/docs/reference#api-versioning) of the
+    /// Discord API.
+    pub fn new() -> Self {
+        Self {
             token: None,
             base_url: V8_URL.to_string(),
             intents_bitmask: Intent::UNPRIVILEGED,
         }
     }
 
-    pub fn token<S: Into<String>>(&mut self, s: S) -> &Self {
+    pub fn token<S: Into<String>>(&mut self, s: S) -> &mut Self {
         self.token = Some(s.into());
         self
     }
 
-    pub fn base_url<S: Into<String>>(&mut self, s: S) -> &Self {
+    pub fn base_url<S: Into<String>>(&mut self, s: S) -> &mut Self {
         self.base_url = s.into();
         self
     }
 
-    pub fn intents<I: IntoIterator<Item = Intent>>(&mut self, intents: I) -> &Self {
-        self.intents_bitmask = Intent::to_bit_mask(intents);
+    pub fn intents<I: IntoIterator<Item = Intent>>(&mut self, intents: I) -> &mut Self {
+        self.intents_bitmask = Intent::bit_mask_of(intents);
         self
     }
 
@@ -159,10 +184,10 @@ impl SmallDBuilder {
         let token = self
             .token
             .clone()
-            .or_else(SmallDBuilder::token_from_env)
+            .or_else(Self::token_from_env)
             .ok_or_else(|| Error::ConfigurationError("No Discord token provided".to_string()))?;
 
-        let base_url = SmallDBuilder::parse_base_url(&self.base_url)?;
+        let base_url = Self::parse_base_url(&self.base_url)?;
 
         let smalld: SmallD = SmallD {
             http: Arc::new(Http::new(token.clone(), base_url)),
@@ -174,5 +199,11 @@ impl SmallDBuilder {
         Identify::new(token, self.intents_bitmask).attach(&smalld);
 
         Ok(smalld)
+    }
+}
+
+impl Default for SmallDBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }

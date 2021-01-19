@@ -1,6 +1,7 @@
 use crate::retry::RetryableError;
 use thiserror::Error;
 
+/// Error type for errors occurring in the use of SmallD.
 #[derive(Error, Debug)]
 #[error("{0}")]
 pub enum Error {

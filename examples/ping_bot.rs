@@ -1,6 +1,6 @@
 use log::{debug, warn};
 use serde_json::json;
-use smalld_rust::SmallD;
+use smalld::SmallD;
 
 fn main() {
     pretty_env_logger::init();

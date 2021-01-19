@@ -3,6 +3,8 @@ use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+///  Struct representing [payloads](https://discord.com/developers/docs/topics/gateway#payloads)
+///  received from the Discord gateway.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Payload {
     pub op: Op,
@@ -43,6 +45,8 @@ impl Payload {
     }
 }
 
+/// [Opcode](https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-opcodes)
+/// as will be received in a [`Payload`](Payload) received from Discord.
 #[derive(Clone, Copy, Debug)]
 pub enum Op {
     Dispatch,
