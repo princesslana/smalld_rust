@@ -20,6 +20,9 @@ tungstenite = "0"
 ureq = { version = "2", features = ["charset", "json"] }
 url = "2"
 
+[lib]
+name = "smalld"
+
 [dev-dependencies]
 pretty_env_logger = "0"
 

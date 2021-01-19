@@ -1,5 +1,8 @@
 const MAX_SHIFT: u8 = 14;
 
+/// [Gateway intent](https://discord.com/developers/docs/topics/gateway#gateway-intents) to be
+/// requested upon identifying with Discord. Configure via
+/// [`intents`](crate::smalld::SmallDBuilder#method.intents).
 #[derive(Clone, Copy)]
 pub enum Intent {
     Guilds = 1 << 0,
@@ -24,7 +27,7 @@ impl Intent {
     pub const PRIVILEGED: u16 = Intent::GuildPresences as u16 | Intent::GuildMembers as u16;
     pub const UNPRIVILEGED: u16 = Intent::ALL ^ Intent::PRIVILEGED;
 
-    pub fn to_bit_mask<I>(intents: I) -> u16
+    pub fn bit_mask_of<I>(intents: I) -> u16
     where
         I: IntoIterator<Item = Intent>,
     {
