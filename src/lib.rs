@@ -47,7 +47,7 @@
 //!
 //! let smalld = SmallDBuilder::new()
 //!   .token("my_discord_token")
-//!   .intents(vec![Intent::GuildMessages,  Intent::DirectMessages])
+//!   .intents(Intent::GuildMessages | Intent::DirectMessages)
 //!   .build()
 //!   .expect("Failed to initialize smalld");
 //!

@@ -7,16 +7,16 @@ use std::time::Duration;
 
 pub struct Identify {
     token: String,
-    intents_bitmask: u16,
+    intents: u16,
     session_id: Option<String>,
     sequence_number: Option<u64>,
 }
 
 impl Identify {
-    pub fn new<S: Into<String>>(token: S, intents_bitmask: u16) -> Self {
+    pub fn new<S: Into<String>>(token: S, intents: u16) -> Self {
         Identify {
             token: token.into(),
-            intents_bitmask,
+            intents,
             session_id: None,
             sequence_number: None,
         }
@@ -78,7 +78,7 @@ impl Identify {
                 "$browser": "smalld_rust",
                 "$device": "smalld_rust"
             },
-            "intents": self.intents_bitmask,
+            "intents": self.intents,
         });
 
         if let Err(err) = smalld.send_gateway_payload(Payload::op(Op::Identify).d(d)) {

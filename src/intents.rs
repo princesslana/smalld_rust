@@ -1,9 +1,21 @@
+use std::ops::BitOr;
+
 const MAX_SHIFT: u8 = 14;
 
 /// [Gateway intent](https://discord.com/developers/docs/topics/gateway#gateway-intents) to be
 /// requested upon identifying with Discord. Configure via
 /// [`intents`](crate::smalld::SmallDBuilder#method.intents).
-#[derive(Clone, Copy)]
+///
+/// Intents can be converted to bit masks and combined using `|`.
+///
+/// ```rust
+/// use smalld::Intent;
+/// assert_eq!(Intent::GuildMembers as u16, 0b0010);
+/// assert_eq!((Intent::GuildMembers | Intent::GuildBans) as u16, 0b0110);
+/// assert_eq!((Intent::GuildMembers | Intent::GuildBans | Intent::GuildEmojis) as u16, 0b1110);
+/// ```
+///
+#[derive(Clone, Copy, Debug)]
 pub enum Intent {
     Guilds = 1 << 0,
     GuildMembers = 1 << 1,
@@ -32,5 +44,27 @@ impl Intent {
         I: IntoIterator<Item = Intent>,
     {
         intents.into_iter().fold(0, |acc, i| acc | i as u16)
+    }
+}
+
+impl From<Intent> for u16 {
+    fn from(i: Intent) -> u16 {
+        i as u16
+    }
+}
+
+impl BitOr for Intent {
+    type Output = u16;
+
+    fn bitor(self, rhs: Intent) -> u16 {
+        self as u16 | rhs as u16
+    }
+}
+
+impl BitOr<Intent> for u16 {
+    type Output = u16;
+
+    fn bitor(self, rhs: Intent) -> u16 {
+        self | rhs as u16
     }
 }
