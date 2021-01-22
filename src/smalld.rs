@@ -138,7 +138,7 @@ impl SmallD {
 pub struct SmallDBuilder {
     token: Option<String>,
     base_url: String,
-    intents_bitmask: u16,
+    intents: u16,
 }
 
 impl SmallDBuilder {
@@ -152,7 +152,7 @@ impl SmallDBuilder {
         Self {
             token: None,
             base_url: V8_URL.to_string(),
-            intents_bitmask: Intent::UNPRIVILEGED,
+            intents: Intent::UNPRIVILEGED,
         }
     }
 
@@ -166,8 +166,8 @@ impl SmallDBuilder {
         self
     }
 
-    pub fn intents<I: IntoIterator<Item = Intent>>(&mut self, intents: I) -> &mut Self {
-        self.intents_bitmask = Intent::bit_mask_of(intents);
+    pub fn intents<M: Into<u16>>(&mut self, intents: M) -> &mut Self {
+        self.intents = intents.into();
         self
     }
 
@@ -209,7 +209,7 @@ impl SmallDBuilder {
         };
 
         Heartbeat::new().attach(&smalld);
-        Identify::new(token, self.intents_bitmask).attach(&smalld);
+        Identify::new(token, self.intents).attach(&smalld);
 
         Ok(smalld)
     }
