@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::gateway::{Gateway, Message};
 use crate::heartbeat::Heartbeat;
-use crate::http::Http;
+use crate::http::{Http, QueryParameters};
 use crate::identify::Identify;
 use crate::intents::Intent;
 use crate::listeners::Listeners;
@@ -33,7 +33,11 @@ const V8_URL: &str = "https://discord.com/api/v8";
 ///   * **Resources**
 ///     The methods for acessing Discord's rest based resource apis. These methods are
 ///     [`get`](SmallD#function.get), [`post`](SmallD#function.post), [`put`](SmallD#function.put),
-///     [`patch`](SmallD#function.patch), and [`delete`](SmallD#function.delete).
+///     [`patch`](SmallD#function.patch), and [`delete`](SmallD#function.delete). There are also
+///     `_with_parameters` versions for [`get`](SmallD#function.get_with_parameters),
+///     [`post`](SmallD#function.post_with_parameters), and
+///     [`put`](SmallD#function.put_with_parameters) if appending query parameters to the url is
+///     required.
 ///     
 #[derive(Clone)]
 pub struct SmallD {
@@ -76,15 +80,41 @@ impl SmallD {
     }
 
     pub fn get<S: AsRef<str>>(&self, path: S) -> Result<Value, Error> {
-        self.http.get(path)
+        self.get_with_parameters(path, QueryParameters::new())
+    }
+
+    pub fn get_with_parameters<S: AsRef<str>>(
+        &self,
+        path: S,
+        parameters: QueryParameters,
+    ) -> Result<Value, Error> {
+        self.http.get(path, parameters)
     }
 
     pub fn post<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
-        self.http.post(path, json)
+        self.post_with_parameters(path, QueryParameters::new(), json)
+    }
+
+    pub fn post_with_parameters<S: AsRef<str>>(
+        &self,
+        path: S,
+        parameters: QueryParameters,
+        json: Value,
+    ) -> Result<Value, Error> {
+        self.http.post(path, parameters, json)
     }
 
     pub fn put<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
-        self.http.put(path, json)
+        self.put_with_parameters(path, QueryParameters::new(), json)
+    }
+
+    pub fn put_with_parameters<S: AsRef<str>>(
+        &self,
+        path: S,
+        parameters: QueryParameters,
+        json: Value,
+    ) -> Result<Value, Error> {
+        self.http.put(path, parameters, json)
     }
 
     pub fn patch<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {

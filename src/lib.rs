@@ -96,6 +96,7 @@
 //! ```
 
 pub use crate::error::Error;
+pub use crate::http::QueryParameters;
 pub use crate::intents::Intent;
 pub use crate::payload::{Op, Payload};
 pub use crate::smalld::{SmallD, SmallDBuilder};
