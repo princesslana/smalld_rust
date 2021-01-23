@@ -1,9 +1,9 @@
 use crate::error::Error;
-use serde_json::Value;
+use serde_json::{json, Value};
 use ureq::{Agent, AgentBuilder, Request, Response};
 use url::Url;
 
-pub struct Http {
+pub(crate) struct Http {
     authorization: String,
     user_agent: String,
     base_url: Url,
@@ -32,6 +32,18 @@ impl Http {
         self.with_request("POST", path.as_ref(), |r| r.send_json(json))
     }
 
+    pub fn put<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
+        self.with_request("PUT", path.as_ref(), |r| r.send_json(json))
+    }
+
+    pub fn patch<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
+        self.with_request("PATCH", path.as_ref(), |r| r.send_json(json))
+    }
+
+    pub fn delete<S: AsRef<str>>(&self, path: S) -> Result<Value, Error> {
+        self.with_request("DELETE", path.as_ref(), |r| r.call())
+    }
+
     fn build_url(&self, path: &str) -> Result<Url, Error> {
         let mut url: Url = self.base_url.clone();
 
@@ -55,6 +67,9 @@ impl Http {
 
         let response = f(request)?;
 
-        response.into_json().map_err(|e| e.into())
+        match response.status() {
+            204 => Ok(json!({})),
+            _ => response.into_json().map_err(|e| e.into()),
+        }
     }
 }
