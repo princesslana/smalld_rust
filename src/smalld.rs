@@ -82,6 +82,18 @@ impl SmallD {
         self.http.post(path, json)
     }
 
+    pub fn put<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
+        self.http.put(path, json)
+    }
+
+    pub fn patch<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
+        self.http.patch(path, json)
+    }
+
+    pub fn delete<S: AsRef<str>>(&self, path: S) -> Result<Value, Error> {
+        self.http.delete(path)
+    }
+
     pub fn run(&self) {
         if let Err(err) = retry(Duration::from_millis(5000), || {
             let ws_url = self.get_websocket_url()?;
@@ -113,7 +125,7 @@ impl SmallD {
             .get("/gateway/bot")?
             .get("url")
             .and_then(Value::as_str)
-            .ok_or_else(|| Error::illegal_state("Could not get web socket url"))?
+            .ok_or_else(|| Error::illegal_state("Could not get websocket url"))?
             .to_owned();
 
         Url::parse(&ws_url_str)
