@@ -1,5 +1,5 @@
 use serde_json::json;
-use smalld::{Error, SmallD, SmallDBuilder};
+use smalld::{Error, QueryParameters, SmallD, SmallDBuilder};
 
 const DUMMY_TOKEN: &str = "DuMmY.ToKeN";
 const HTTP_BIN: &str = "http://httpbin.org";
@@ -24,6 +24,22 @@ fn assert_strlike_eq<A: AsRef<str>, B: AsRef<str>>(lhs: A, rhs: B) {
 fn it_makes_get_request() {
     let rsp = subject().get("/get").unwrap();
     assert_strlike_eq(rsp["url"].as_str().unwrap(), http_bin("/get"));
+}
+
+#[test]
+fn it_makes_get_request_with_parameters() {
+    let rsp = subject()
+        .get_with_parameters(
+            "/get",
+            QueryParameters::new()
+                .add("key1", "value1")
+                .add("key2", "value2"),
+        )
+        .unwrap();
+    assert_strlike_eq(
+        rsp["url"].as_str().unwrap(),
+        http_bin("/get?key1=value1&key2=value2"),
+    );
 }
 
 #[test]
