@@ -32,7 +32,8 @@ const V8_URL: &str = "https://discord.com/api/v8";
 ///
 ///   * **Resources**
 ///     The methods for acessing Discord's rest based resource apis. These methods are
-///     [`get`](SmallD#function.get) and [`post`](SmallD#function.post)
+///     [`get`](SmallD#function.get), [`post`](SmallD#function.post), [`put`](SmallD#function.put),
+///     [`patch`](SmallD#function.patch), and [`delete`](SmallD#function.delete).
 ///     
 #[derive(Clone)]
 pub struct SmallD {
