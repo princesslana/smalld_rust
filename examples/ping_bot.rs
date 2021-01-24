@@ -1,4 +1,4 @@
-use log::{debug, warn};
+use log::warn;
 use serde_json::json;
 use smalld::SmallD;
 
@@ -8,13 +8,12 @@ fn main() {
     let smalld = SmallD::new().expect("Failed to initialize smalld");
 
     smalld.on_event("MESSAGE_CREATE", move |smalld, json| {
-        if let Some("++ping") = json.get("content").and_then(|c| c.as_str()) {
-            debug!("Pong!");
-            if let Some(channel_id) = json.get("channel_id").and_then(|c| c.as_str()) {
-                if let Err(err) = smalld.post(
-                    format!("/channels/{}/messages", channel_id),
-                    json!({"content":"pong"}),
-                ) {
+        if let Some("++ping") = json["content"].as_str() {
+            if let Some(channel_id) = json["channel_id"].as_str() {
+                if let Err(err) = smalld
+                    .resource(format!("/channels/{}/messages", channel_id))
+                    .post(json!({"content":"pong"}))
+                {
                     warn!("Error sending pong response: {}", err);
                 }
             }
