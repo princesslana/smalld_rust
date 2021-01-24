@@ -66,7 +66,7 @@
 //! let smalld = SmallD::new().expect("Failed to initialize smalld");
 //!
 //! smalld.on_event("MESSAGE_CREATE", |smalld, json| {
-//!   if let Some("ping") = json.get("content").and_then(|c| c.as_str()) {
+//!   if let Some("ping") = json["content"].as_str() {
 //!     println!("Ping Received!");
 //!   }
 //! });
@@ -74,8 +74,9 @@
 //! smalld.run();
 //! ```
 //!   
-//! To send requests through Discord's resources api SmallD provides methods related to the HTTP
-//! methods. For example, [`post`](smalld::SmallD#method.post) for sending a HTTP post request.
+//! To send requests through Discord's resources api SmallD provies the
+//! [`resource`](smallD::SmallD#method.resource) method. It accepts the path of the resource and
+//! provides a builder like interface that allows adding query parameters and calling the resource.
 //! We can use this method to send a request to the [create
 //! message](https://discord.com/developers/docs/resources/channel#create-message) endpoint.
 //!
@@ -85,10 +86,9 @@
 //! # use smalld::{SmallD, Error};
 //! # use serde_json::{json, Value};
 //! pub fn send_pong(smalld: &SmallD, reply_to: Value) -> Result<(), Error> {
-//!   if let Some(channel_id) = reply_to.get("channel_id").and_then(|c| c.as_str()) {
-//!     smalld.post(
-//!         format!("/channels/{}/msesages", channel_id),
-//!         json!({"content" : "pong"}))?;
+//!   if let Some(channel_id) = reply_to["channel_id"].as_str() {
+//!     smalld.resource(format!("/channels/{}/msesages", channel_id))
+//!           .post(json!({"content" : "pong"}))?;
 //!   };
 //!
 //!   Ok(())
@@ -96,9 +96,9 @@
 //! ```
 
 pub use crate::error::Error;
-pub use crate::http::QueryParameters;
 pub use crate::intents::Intent;
 pub use crate::payload::{Op, Payload};
+pub use crate::resource::Resource;
 pub use crate::smalld::{SmallD, SmallDBuilder};
 
 mod error;
@@ -109,5 +109,6 @@ mod identify;
 mod intents;
 mod listeners;
 mod payload;
+mod resource;
 mod retry;
 mod smalld;

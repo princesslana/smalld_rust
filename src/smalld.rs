@@ -1,11 +1,12 @@
 use crate::error::Error;
 use crate::gateway::{Gateway, Message};
 use crate::heartbeat::Heartbeat;
-use crate::http::{Http, QueryParameters};
+use crate::http::Http;
 use crate::identify::Identify;
 use crate::intents::Intent;
 use crate::listeners::Listeners;
 use crate::payload::{Op, Payload};
+use crate::resource::Resource;
 use crate::retry::retry;
 use log::warn;
 use serde_json::Value;
@@ -31,14 +32,10 @@ const V8_URL: &str = "https://discord.com/api/v8";
 ///     sending is via [`send_gateway_payload`](SmallD#send_gateway_payload)
 ///
 ///   * **Resources**
-///     The methods for acessing Discord's rest based resource apis. These methods are
-///     [`get`](SmallD#function.get), [`post`](SmallD#function.post), [`put`](SmallD#function.put),
-///     [`patch`](SmallD#function.patch), and [`delete`](SmallD#function.delete). There are also
-///     `_with_parameters` versions for [`get`](SmallD#function.get_with_parameters),
-///     [`post`](SmallD#function.post_with_parameters), and
-///     [`put`](SmallD#function.put_with_parameters) if appending query parameters to the url is
-///     required.
-///     
+///     The method for acessing Discord's rest based resource apis. This is the
+///     [`resource`](SmallD#function.resource) method, which provides a builder like interface to
+///     access Discord resources.
+///
 #[derive(Clone)]
 pub struct SmallD {
     http: Arc<Http>,
@@ -79,50 +76,8 @@ impl SmallD {
         self.gateway.send(payload)
     }
 
-    pub fn get<S: AsRef<str>>(&self, path: S) -> Result<Value, Error> {
-        self.get_with_parameters(path, QueryParameters::new())
-    }
-
-    pub fn get_with_parameters<S: AsRef<str>>(
-        &self,
-        path: S,
-        parameters: QueryParameters,
-    ) -> Result<Value, Error> {
-        self.http.get(path, parameters)
-    }
-
-    pub fn post<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
-        self.post_with_parameters(path, QueryParameters::new(), json)
-    }
-
-    pub fn post_with_parameters<S: AsRef<str>>(
-        &self,
-        path: S,
-        parameters: QueryParameters,
-        json: Value,
-    ) -> Result<Value, Error> {
-        self.http.post(path, parameters, json)
-    }
-
-    pub fn put<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
-        self.put_with_parameters(path, QueryParameters::new(), json)
-    }
-
-    pub fn put_with_parameters<S: AsRef<str>>(
-        &self,
-        path: S,
-        parameters: QueryParameters,
-        json: Value,
-    ) -> Result<Value, Error> {
-        self.http.put(path, parameters, json)
-    }
-
-    pub fn patch<S: AsRef<str>>(&self, path: S, json: Value) -> Result<Value, Error> {
-        self.http.patch(path, json)
-    }
-
-    pub fn delete<S: AsRef<str>>(&self, path: S) -> Result<Value, Error> {
-        self.http.delete(path)
+    pub fn resource<S: Into<String>>(&self, path: S) -> Resource {
+        Resource::new(self.http.clone(), path)
     }
 
     pub fn run(&self) {
@@ -153,7 +108,8 @@ impl SmallD {
 
     fn get_websocket_url(&self) -> Result<Url, Error> {
         let ws_url_str = self
-            .get("/gateway/bot")?
+            .resource("/gateway/bot")
+            .get()?
             .get("url")
             .and_then(Value::as_str)
             .ok_or_else(|| Error::illegal_state("Could not get websocket url"))?
